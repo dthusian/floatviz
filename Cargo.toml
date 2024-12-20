@@ -1,0 +1,9 @@
+[package]
+name = "floatviz"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bitvec = "1.0.1"
+thiserror = "2.0.8"
+num-bigint = "0.4.6"
