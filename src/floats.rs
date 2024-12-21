@@ -58,6 +58,14 @@ impl FloatParameters {
   pub fn total_length(&self) -> usize {
     self.exp_bits + self.sig_bits + 1
   }
+
+  pub fn max_exp(&self) -> i64 {
+    (1i64 << self.exp_bits) - 2 - self.exp_bias as i64
+  }
+
+  pub fn min_exp(&self) -> i64 {
+    1 - (self.exp_bias as i64)
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -74,6 +82,37 @@ impl Float {
     }
   }
 
+  pub fn nan(params: &FloatParameters) -> Self {
+    Float {
+      params: params.clone(),
+      bits: BitVec::repeat(true, params.total_length()),
+    }
+  }
+
+  pub fn inf(params: &FloatParameters, sign: bool) -> Self {
+    let mut bits = BitVec::repeat(false, params.total_length());
+    bits[params.sig_bits..params.sig_bits+params.exp_bits].fill(true);
+    let last = bits.len() - 1;
+    bits.set(last, sign);
+    Float {
+      params: params.clone(),
+      bits,
+    }
+  }
+
+  pub fn from_parts(params: &FloatParameters, sign: bool, exp: i64, sig: &BitSlice) -> Self {
+    assert_eq!(sig.len(), params.sig_bits);
+    let mut bits = BitVec::repeat(false, params.total_length());
+    bits[0..params.sig_bits].copy_from_bitslice(sig);
+    bits[params.sig_bits..params.sig_bits+params.exp_bits].store_le(exp + params.exp_bias as i64);
+    let last = bits.len() - 1;
+    bits.set(last, sign);
+    Float {
+      params: params.clone(),
+      bits,
+    }
+  }
+  
   pub fn parse(s: &str, params: &FloatParameters) -> Result<Self, FloatParseError> {
     params.validate();
     let mut bits = if s.starts_with("0x") {

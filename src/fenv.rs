@@ -1,4 +1,5 @@
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum RoundingMode {
   /// Rounds to the nearest float, if two floats are
   /// equally far away, then use the one with even LSB
@@ -18,4 +19,5 @@ pub enum RoundingMode {
 /// These include rounding mode, flushing subnormals to zero, etc.
 pub struct FloatingPointEnv {
   pub rounding_mode: RoundingMode,
+  pub flush_subnormals_to_zero: bool,
 }
