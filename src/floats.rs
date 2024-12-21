@@ -1,4 +1,5 @@
 use std::iter::repeat;
+use bitvec::bitvec;
 use bitvec::field::BitField;
 use bitvec::macros::internal::funty::Floating;
 use bitvec::order::Lsb0;
@@ -59,12 +60,20 @@ impl FloatParameters {
   }
 }
 
+#[derive(Clone, Debug)]
 pub struct Float {
   params: FloatParameters,
   bits: BitVec
 }
 
 impl Float {
+  pub fn zero(params: &FloatParameters) -> Self {
+    Float {
+      params: params.clone(),
+      bits: BitVec::repeat(false, params.total_length()),
+    }
+  }
+
   pub fn parse(s: &str, params: &FloatParameters) -> Result<Self, FloatParseError> {
     params.validate();
     let mut bits = if s.starts_with("0x") {
@@ -98,24 +107,45 @@ impl Float {
     *self.bits.last().unwrap()
   }
 
-  pub fn exponent(&self) -> &BitSlice {
+  /// Returns the raw exponent bits of the number.
+  pub fn exponent_bits(&self) -> &BitSlice {
     let s = self.params.sig_bits;
     let e = self.params.exp_bits;
     &self.bits[s..s + e]
   }
 
-  pub fn exponent_unbiased(&self) -> u64 {
-    let exp = self.exponent();
+  /// Returns the exponent bits as an integer.
+  pub fn exponent_bits_integer(&self) -> u64 {
+    let exp = self.exponent_bits();
     let exp_unbiased = exp.load_le::<u64>();
     exp_unbiased
   }
 
-  pub fn exponent_biased(&self) -> i64 {
-    self.exponent_unbiased().wrapping_sub(self.params.exp_bias) as i64
+  /// Returns the logical exponent, i.e. subnormals have the same logical exponent as
+  /// the lowest normal exponent. This is the power of 2 that would be used in a computation.
+  pub fn exponent_logical(&self) -> i64 {
+    let mut exp_biased = self.exponent_bits_integer().wrapping_sub(self.params.exp_bias) as i64;
+    if self.exponent_bits().not_any() { // subnormals.
+      exp_biased += 1;
+    }
+    exp_biased
   }
 
-  pub fn significand(&self) -> &BitSlice {
+  /// Returns the raw bits of the significand.
+  pub fn significand_bits(&self) -> &BitSlice {
     &self.bits[0..self.params.sig_bits]
+  }
+
+  /// Returns the logical significand, which has a 1 appended if normal, 0 if subnormal.
+  /// Panics if the float is not finite.
+  pub fn significand_logical(&self) -> BitVec {
+    let class = self.classify();
+    if !class.finite() {
+      panic!("Float is not finite")
+    }
+    let mut bits = self.bits[0..self.params.sig_bits].to_owned();
+    bits.push(class.normal());
+    bits
   }
 
   pub fn params(&self) -> &FloatParameters {
@@ -123,22 +153,22 @@ impl Float {
   }
 
   pub fn classify(&self) -> FloatClass {
-    if self.exponent().all() {
-      if self.significand().not_any() {
+    if self.exponent_bits().all() {
+      if self.significand_bits().not_any() {
         if self.sign() {
           FloatClass::NegativeInf
         } else {
           FloatClass::PositiveInf
         }
       } else {
-        if *self.significand().last().unwrap() {
+        if *self.significand_bits().last().unwrap() {
           FloatClass::QuietNaN
         } else {
           FloatClass::SignallingNaN
         }
       }
-    } else if self.exponent().not_any() {
-      if self.significand().not_any() {
+    } else if self.exponent_bits().not_any() {
+      if self.significand_bits().not_any() {
         if self.sign() {
           FloatClass::NegativeZero
         } else {
@@ -157,6 +187,15 @@ impl Float {
       } else {
         FloatClass::PositiveNormal
       }
+    }
+  }
+
+  /// Returns zero if self is a subnormal number, otherwise return self.
+  pub fn flush_subnormals(&self) -> Float {
+    if self.classify().subnormal() {
+      Float::zero(self.params())
+    } else {
+      self.clone()
     }
   }
 }

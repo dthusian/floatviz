@@ -1,5 +1,6 @@
 pub mod binary;
 pub mod human;
+pub mod epsilon;
 
 use std::fmt::{Write};
 use crate::floats::{Float, BitSlice};
@@ -44,5 +45,6 @@ pub fn print_bitset(f: &mut dyn Write, bitset: &BitSlice) -> std::fmt::Result {
 
 
 pub trait Printer {
+  fn name(&self) -> &str;
   fn print(&self, val: &Float) -> Vec<String>;
 }

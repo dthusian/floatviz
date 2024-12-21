@@ -9,10 +9,10 @@ fn print_float(f: &mut dyn Write, val: &Float) -> std::fmt::Result {
   f.write_char(bit2char(val.sign()))?;
   f.write_char(' ')?;
   f.write_str(GREEN)?;
-  print_bitset(f, val.exponent())?;
+  print_bitset(f, val.exponent_bits())?;
   f.write_char(' ')?;
   f.write_str(YELLOW)?;
-  print_bitset(f, val.significand())?;
+  print_bitset(f, val.significand_bits())?;
   f.write_str(RESET)?;
   Ok(())
 }
@@ -37,6 +37,10 @@ fn print_guide_markers(f: &mut dyn Write, params: &FloatParameters) -> std::fmt:
 pub struct BinaryPrinter;
 
 impl Printer for BinaryPrinter {
+  fn name(&self) -> &str {
+    "Binary"
+  }
+
   fn print(&self, val: &Float) -> Vec<String> {
     let mut s = String::new();
     print_float(&mut s, val).unwrap();
@@ -47,6 +51,10 @@ impl Printer for BinaryPrinter {
 pub struct BinaryPrinterWithGuide;
 
 impl Printer for BinaryPrinterWithGuide {
+  fn name(&self) -> &str {
+    "Binary"
+  }
+
   fn print(&self, val: &Float) -> Vec<String> {
     let mut s1 = String::new();
     let mut s2 = String::new();

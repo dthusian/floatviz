@@ -1,14 +1,11 @@
 use num_bigint::{BigInt, Sign};
 use crate::floats::Float;
 
-// Assumes normal
-// todo allow subnormal
-pub fn float_to_str(f: &Float) -> String {
+// Assumes finite
+pub fn float_to_exact_str(f: &Float) -> String {
   let params = &f.params();
-  let mut significand_bits = f.significand().to_owned();
-  significand_bits.push(true);
-  let mut significand = BigInt::from_slice(Sign::Plus, significand_bits.as_raw_slice());
-  let exponent = f.exponent_biased();
+  let mut significand = BigInt::from_slice(Sign::Plus, f.significand_logical().as_raw_slice());
+  let exponent = f.exponent_logical();
   if exponent >= params.sig_bits as i64 {
     // precision greater than 1, shift significant left and convert to dec
     significand <<= exponent;
