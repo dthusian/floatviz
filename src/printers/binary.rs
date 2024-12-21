@@ -41,6 +41,10 @@ impl Printer for BinaryPrinter {
     "Binary"
   }
 
+  fn description(&self) -> &str {
+    "Prints the binary representation"
+  }
+
   fn print(&self, val: &Float) -> Vec<String> {
     let mut s = String::new();
     print_float(&mut s, val).unwrap();
@@ -53,6 +57,10 @@ pub struct BinaryPrinterWithGuide;
 impl Printer for BinaryPrinterWithGuide {
   fn name(&self) -> &str {
     "Binary"
+  }
+
+  fn description(&self) -> &str {
+    "Prints the binary representation with guide markers"
   }
 
   fn print(&self, val: &Float) -> Vec<String> {

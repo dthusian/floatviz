@@ -1,11 +1,15 @@
 use crate::floats::Float;
 use crate::printers::Printer;
 
-pub struct EpsilonPrinter;
+pub struct UnitInLastPlacePrinter;
 
-impl Printer for EpsilonPrinter {
+impl Printer for UnitInLastPlacePrinter {
   fn name(&self) -> &str {
-    "Epsilon"
+    "ULP"
+  }
+
+  fn description(&self) -> &str {
+    "Prints the units in last place (ULP)"
   }
 
   fn print(&self, val: &Float) -> Vec<String> {

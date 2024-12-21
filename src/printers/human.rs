@@ -9,6 +9,10 @@ impl Printer for ExactDecimalPrinter {
     "Exact Decimal"
   }
 
+  fn description(&self) -> &str {
+    "Prints the exact decimal value corresponding to the float"
+  }
+
   fn print(&self, val: &Float) -> Vec<String> {
     let s = match val.classify() {
       FloatClass::PositiveInf => "+Inf".to_owned(),

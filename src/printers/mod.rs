@@ -2,8 +2,13 @@ pub mod binary;
 pub mod human;
 pub mod epsilon;
 
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Write};
+use std::rc::Rc;
 use crate::floats::{Float, BitSlice};
+use crate::printers::binary::{BinaryPrinter, BinaryPrinterWithGuide};
+use crate::printers::epsilon::UnitInLastPlacePrinter;
+use crate::printers::human::ExactDecimalPrinter;
 
 pub const RESET: &str = "\x1b[0m";
 pub const BLACK: &str = "\x1b[30m";
@@ -46,5 +51,14 @@ pub fn print_bitset(f: &mut dyn Write, bitset: &BitSlice) -> std::fmt::Result {
 
 pub trait Printer {
   fn name(&self) -> &str;
+  fn description(&self) -> &str;
   fn print(&self, val: &Float) -> Vec<String>;
+}
+
+pub fn collect_printers() -> BTreeMap<String, Rc<dyn Printer>> {
+  let mut h: BTreeMap<String, Rc<dyn Printer>> = BTreeMap::new();
+  h.insert("binary".into(), Rc::new(BinaryPrinterWithGuide));
+  h.insert("exact".into(), Rc::new(ExactDecimalPrinter));
+  h.insert("ulp".into(), Rc::new(UnitInLastPlacePrinter));
+  h
 }
