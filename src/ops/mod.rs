@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::{Write};
 use std::ops::{BitAnd, BitOr, BitXor};
+use std::rc::Rc;
 use thiserror::Error;
 use crate::fenv::FloatingPointEnv;
 use crate::floats::{Float, FloatParameters};
@@ -43,8 +44,9 @@ pub trait Op {
   fn execute_visual(&self, fomatter: &mut dyn Write, env: &FloatingPointEnv, params: &[Float], output_type: &FloatParameters) -> Result<(Float, Exception), std::fmt::Error>;
 }
 
-pub fn collect_ops() -> BTreeMap<String, Box<dyn Op>> {
-  let mut h = BTreeMap::<String, Box<dyn Op>>::new();
-  h.insert("add".into(), Box::new(AddSub(false)));
+pub fn collect_ops() -> BTreeMap<String, Rc<dyn Op>> {
+  let mut h = BTreeMap::<String, Rc<dyn Op>>::new();
+  h.insert("add".into(), Rc::new(AddSub(false)));
+  h.insert("sub".into(), Rc::new(AddSub(true)));
   h
 }

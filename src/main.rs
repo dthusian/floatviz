@@ -38,11 +38,15 @@ pub enum Commands {
   },
   /// Performs an operation on two numbers.
   Op {
+    /// The operation to perform
+    op: String,
     /// Arguments, alternative type and value
     args: Vec<String>
   },
   /// List all supported printers that can be used with the --show (-s) flag.
-  Printers {}
+  Printers {},
+  /// List all supported operations.
+  Operations {}
 }
 
 fn print_using_printer(printer: &dyn Printer, val: &Float) {
@@ -54,7 +58,7 @@ fn print_using_printer(printer: &dyn Printer, val: &Float) {
   });
 }
 
-fn print_many(value: &Float, show: &[String], printers: &BTreeMap<String, Rc<dyn Printer>>) {
+fn print_float(value: &Float, show: &[String], printers: &BTreeMap<String, Rc<dyn Printer>>) {
   let printers = show.iter().filter_map(|v| {
     let p = printers.get(v).cloned();
     if p.is_none() {
@@ -83,42 +87,55 @@ fn main() {
         return;
       };
 
-      print_many(&fvalue, &args.show, &printers);
+      print_float(&fvalue, &args.show, &printers);
     }
     Commands::Printers { .. } => {
       printers.iter().for_each(|(k, v)| {
         println!("{}: {}", k, v.description());
       })
     }
-    Commands::Op { args: args2 } => {
-      //todo undog
-      let at = FloatParameters::parse(&args2[0]).unwrap();
-      let a = Float::parse(&args2[1], &at).unwrap();
-      let bt = FloatParameters::parse(&args2[2]).unwrap();
-      let b = Float::parse(&args2[3], &bt).unwrap();
+    Commands::Op { op, args: args2 } => {
+      let box_op = ops.get(&op);
+      let Some(box_op) = box_op else {
+        eprintln!("{}Unknown operation: {}{}", RED, op, RESET);
+        return;
+      };
 
-      println!("\x1b[1mInput A\x1b[0m");
-      print_many(&a, &args.show, &printers);
-      println!();
+      if args2.len() != box_op.num_params() * 2 {
+        eprintln!("{}Wrong number of arguments, expected {}{}", RED, box_op.num_params(), RESET);
+        return;
+      }
+      let params = args2.chunks(2).map(|v| {
+        let ty = FloatParameters::parse(&v[0]).unwrap();
+        let float = Float::parse(&v[1], &ty).unwrap();
+        float
+      }).collect::<Vec<_>>();
 
-      println!("\x1b[1mInput A\x1b[0m");
-      print_many(&b, &args.show, &printers);
-      println!();
+      let letters = "ABCDEFG";
+      params.iter().zip(letters.chars()).for_each(|(float, name)| {
+        println!("\x1b[1mInput {}\x1b[0m", name);
+        print_float(&float, &args.show, &printers);
+        println!();
+      });
 
       println!("---");
-
-      let add = ops.get("add".into()).unwrap();
       let mut s = String::new();
-      let (ret, exp) = add.execute_visual(&mut s, &FloatingPointEnv {
+      let (ret, exp) = box_op.execute_visual(&mut s, &FloatingPointEnv {
         rounding_mode: RoundingMode::TiesToEven,
         flush_subnormals_to_zero: false,
-      }, &[a, b], &F64_PARAMS).unwrap();
+      }, &params, &F64_PARAMS).unwrap();
       println!("{}", s);
 
       println!("---");
+      println!();
 
       println!("\x1b[1mResult\x1b[0m");
-      print_many(&ret, &args.show, &printers);
+      print_float(&ret, &args.show, &printers);
+    }
+    Commands::Operations { .. } => {
+      ops.iter().for_each(|(k, v)| {
+        println!("{}", k);
+      })
     }
   }
 }
